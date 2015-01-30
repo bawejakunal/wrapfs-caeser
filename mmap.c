@@ -21,7 +21,14 @@ void encrypt(char *data, char *encrypted, size_t size)
 {
     unsigned int i;
     for(i=0;i<(unsigned int)size;i++)
-        encrypted[i] = data[i] + 3;
+    {
+        if(data[i]>='a'&& data[i]<='z')
+            encrypted[i] = (char)((int)'a' + ((int)data[i] - (int)'a' + 3)%26);
+        else if(data[i]>='A'&& data[i]<='Z')
+            encrypted[i] = (char)((int)'A' + ((int)data[i] - (int)'A' + 3)%26);
+        else
+            encrypted[i] = data[i];
+    }
     printk(KERN_INFO "%s",encrypted);
     return;
 }
