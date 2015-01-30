@@ -23,14 +23,38 @@ void encrypt(char *data, char *encrypted, size_t size)
     for(i=0;i<(unsigned int)size;i++)
     {
         if(data[i]>='a'&& data[i]<='z')
-            encrypted[i] = (char)((int)'a' + ((int)data[i] - (int)'a' + 3)%26);
+            encrypted[i] = (char)('a' + ((data[i] - 'a' + 3)%26));
         else if(data[i]>='A'&& data[i]<='Z')
-            encrypted[i] = (char)((int)'A' + ((int)data[i] - (int)'A' + 3)%26);
+            encrypted[i] = (char)('A' + ((data[i] - 'A' + 3)%26));
         else
             encrypted[i] = data[i];
     }
-    printk(KERN_INFO "%s",encrypted);
     return;
+}
+
+/* caeser decrypt*/
+void decrypt(char *data, char *decrypted, size_t size)
+{
+    unsigned int i;
+    for(i=0;i<(unsigned int)size;i++)
+    {
+        if(data[i]>='a'&& data[i]<='z')
+        {
+            if((data[i] - 'a' - 3) < 0)
+                decrypted[i] = data[i]+ 23; //handles xyz
+            else
+                decrypted[i] = (char)('a' + ((data[i] - 'a' - 3)%26));
+        }
+        else if(data[i]>='A'&& data[i]<='Z')
+        {
+            if((data[i] - 'A' - 3) < 0)
+                decrypted[i] = data[i]+ 23; //handles xyz
+            else
+                decrypted[i] = (char)('A' + ((data[i] - 'A' - 3)%26));
+        }
+        else
+            decrypted[i] = data[i];
+    }
 }
 
 /**
@@ -121,14 +145,30 @@ int wrapfs_read_lower_page_segment(struct page *page_for_wrapfs,
     char *virt;
     loff_t offset;
     int rc;
+/* decryption */
+    struct page *encrypted_page = alloc_page(GFP_KERNEL);
+    char *encrypted = kmap(encrypted_page);
+/* decryption ends */
 
     printk(KERN_INFO "wrapfs_read_lower_page_segment");
 
     offset = ((((loff_t)page_index) << PAGE_CACHE_SHIFT) + offset_in_page);
     virt = kmap(page_for_wrapfs);
-    rc = wrapfs_read_lower(virt, offset, size, wrapfs_inode, file);
+    //rc = wrapfs_read_lower(virt, offset, size, wrapfs_inode, file);
+    rc = wrapfs_read_lower(encrypted, offset, size, wrapfs_inode, file);
+
+/*decryption*/
+    decrypt(encrypted,virt,size);
+/*decryption ends*/
+
     if (rc > 0)
             rc = 0;
+
+/* decryption */
+        kunmap(encrypted_page);
+        __free_page(encrypted_page);
+/* decryption ends */
+
     kunmap(page_for_wrapfs);
     flush_dcache_page(page_for_wrapfs);
     return rc;
@@ -175,7 +215,6 @@ int wrapfs_write_lower_page_segment(struct inode *wrapfs_inode,
     
     //rc = wrapfs_write_lower(wrapfs_inode, virt, offset, size, file);
     rc = wrapfs_write_lower(wrapfs_inode, cipher, offset, size, file);
-    printk(KERN_INFO "%s",cipher);
     if (rc > 0)
             rc = 0;
     kunmap(page_for_lower);
