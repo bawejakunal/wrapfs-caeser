@@ -51,7 +51,7 @@ void decrypt(char *data, char *decrypted, size_t size)
                 decrypted[i] = data[i]+ 23; //handles xyz
             else
                 decrypted[i] = (char)('A' + ((data[i] - 'A' - 3)%26));
-        }
+        }exi
         else
             decrypted[i] = data[i];
     }
